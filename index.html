@@ -3,34 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agenda de Abonos Protegida</title>
+    <title>Agenda Pro - Control de Abonos</title>
     <style>
-        :root { --primary: #2c3e50; --accent: #27ae60; --danger: #e74c3c; --info: #3498db; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #ecf0f1; display: flex; justify-content: center; padding: 20px; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
+        :root { --primary: #2c3e50; --accent: #27ae60; --danger: #e74c3c; --info: #3498db; --gray: #95a5a6; }
+        body { font-family: 'Segoe UI', sans-serif; background: #ecf0f1; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
         h2 { text-align: center; color: var(--primary); margin-bottom: 20px; }
+        
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 10px; }
-        .btn-add { background: var(--accent); color: white; }
-        .btn-add:hover { background: #219150; }
+        .search-bar { border: 2px solid var(--info); background: #f0faff; margin-bottom: 15px; }
         
-        .cliente-item { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 5px solid var(--accent); display: flex; justify-content: space-between; align-items: center; }
-        .info-cliente { flex-grow: 1; }
-        .nombre-label { font-size: 0.8em; color: gray; display: block; }
-        .nombre-texto { font-weight: bold; color: var(--primary); text-transform: capitalize; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 5px; }
+        .btn-add { background: var(--accent); color: white; margin-bottom: 15px; }
         
-        .monto-seccion { text-align: right; margin-left: 10px; }
-        .monto { color: var(--danger); font-weight: bold; font-size: 1.1em; display: block; }
+        .cliente-item { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 5px solid var(--accent); position: relative; }
+        .nombre-texto { font-weight: bold; color: var(--primary); font-size: 1.2em; text-transform: capitalize; display: block; }
+        .producto-texto { font-size: 0.9em; color: #555; font-style: italic; margin-bottom: 5px; display: block; }
+        .monto-pendiente { color: var(--danger); font-weight: bold; font-size: 1.3em; margin: 5px 0; display: block; }
         
-        .acciones-mini { display: flex; gap: 5px; margin-top: 5px; }
-        .btn-mini { width: auto; padding: 4px 8px; font-size: 0.75em; margin: 0; }
+        .historial-box { font-size: 0.8em; color: #666; background: #fff; padding: 8px; border-radius: 4px; margin: 10px 0; border: 1px solid #eee; max-height: 80px; overflow-y: auto; }
+        .historial-item { border-bottom: 1px solid #f1f1f1; padding: 2px 0; }
+        
+        .acciones-mini { display: flex; gap: 8px; }
+        .btn-mini { padding: 8px; font-size: 0.85em; flex: 1; }
         .btn-abono { background: var(--info); color: white; }
         .btn-liq { background: #eee; color: #333; }
         
         .backup-zone { margin-top: 30px; padding-top: 15px; border-top: 1px dashed #ccc; display: flex; gap: 10px; }
-        .btn-backup { background: #95a5a6; color: white; font-size: 0.7em; margin: 0; flex: 1; }
+        .btn-backup { background: var(--gray); color: white; font-size: 0.7em; margin: 0; flex: 1; }
 
-        #app-content { display: none; }
+        #app-content, .hidden { display: none; }
+        .empty-msg { text-align: center; color: gray; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -38,27 +41,33 @@
 <div class="card">
     <div id="login-section">
         <h2>🔐 Acceso Privado</h2>
-        <input type="password" id="master-pass" placeholder="Introduce tu contraseña">
+        <input type="password" id="master-pass" placeholder="Tu contraseña">
         <button class="btn-add" onclick="checkPass()">Entrar</button>
     </div>
 
     <div id="app-content">
-        <h2>📒 Mis Abonos</h2>
-        <input type="text" id="nombre" placeholder="Nombre del cliente">
-        <input type="number" id="deuda" placeholder="Deuda Total ($)">
-        <button class="btn-add" onclick="agregar()">+ Registrar Deuda</button>
+        <h2>📒 Control de Abonos</h2>
         
-        <div id="lista" style="margin-top: 20px;"></div>
+        <div id="registro-form">
+            <input type="text" id="nombre" placeholder="Nombre completo del cliente">
+            <input type="text" id="producto" placeholder="¿Qué compró? (Ej. Zapatos, Préstamo...)">
+            <input type="number" id="deuda" placeholder="Deuda total inicial ($)">
+            <button class="btn-add" onclick="agregar()">+ Registrar Deuda</button>
+        </div>
+
+        <hr>
+        
+        <input type="text" id="buscador" class="search-bar" placeholder="🔍 Buscar cliente por nombre..." onkeyup="render()">
+
+        <div id="lista"></div>
         
         <div class="backup-zone">
-            <button class="btn-backup" onclick="exportarDatos()">📥 Descargar Respaldo</button>
-            <button class="btn-backup" onclick="document.getElementById('fileInput').click()">📤 Subir Respaldo</button>
+            <button class="btn-backup" onclick="exportarDatos()">📥 Guardar Archivo</button>
+            <button class="btn-backup" onclick="document.getElementById('fileInput').click()">📤 Cargar Archivo</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarDatos(event)">
         </div>
 
-        <div style="text-align: center; margin-top: 20px;">
-            <button onclick="cerrarSesion()" style="background:none; color:gray; font-size: 0.8em; text-decoration: underline; width: auto;">Cerrar Sesión</button>
-        </div>
+        <button onclick="location.reload()" style="background:none; color:gray; font-size: 0.8em; margin-top:15px;">Cerrar Sesión</button>
     </div>
 </div>
 
@@ -66,31 +75,40 @@
     let clientes = [];
 
     function checkPass() {
-        if(document.getElementById('master-pass').value.length < 3) return alert("Clave inválida");
-        document.getElementById('login-section').style.display = 'none';
-        document.getElementById('app-content').style.display = 'block';
-        cargarDatos();
+        if(document.getElementById('master-pass').value.length > 0) {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('app-content').style.display = 'block';
+            cargarDatos();
+        }
     }
 
     function guardarDatos() {
         clientes.sort((a, b) => a.nombre.localeCompare(b.nombre));
-        localStorage.setItem('datos_abonos_v3', btoa(JSON.stringify(clientes)));
+        localStorage.setItem('agenda_v5_data', btoa(JSON.stringify(clientes)));
         render();
     }
 
     function cargarDatos() {
-        const guardado = localStorage.getItem('datos_abonos_v3');
+        const guardado = localStorage.getItem('agenda_v5_data');
         if(guardado) {
             try { clientes = JSON.parse(atob(guardado)); render(); } catch(e) { clientes = []; }
         }
     }
 
     function agregar() {
-        const n = document.getElementById('nombre').value;
+        const n = document.getElementById('nombre').value.trim();
+        const p = document.getElementById('producto').value.trim();
         const d = parseFloat(document.getElementById('deuda').value);
         if(n && d > 0) {
-            clientes.push({ nombre: n, pendiente: d });
-            document.getElementById('nombre').value = ""; document.getElementById('deuda').value = "";
+            clientes.push({
+                nombre: n,
+                producto: p || "No especificado",
+                pendiente: d,
+                historial: []
+            });
+            document.getElementById('nombre').value = "";
+            document.getElementById('producto').value = "";
+            document.getElementById('deuda').value = "";
             guardarDatos();
         }
     }
@@ -98,8 +116,11 @@
     function registrarAbono(index) {
         const monto = parseFloat(prompt(`¿Cuánto abona ${clientes[index].nombre}?`));
         if(!isNaN(monto) && monto > 0) {
+            const fecha = new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+            clientes[index].historial.unshift({ fecha, monto });
+
             if(monto >= clientes[index].pendiente) {
-                alert("Cuenta liquidada.");
+                alert("¡Cuenta liquidada!");
                 clientes.splice(index, 1);
             } else {
                 clientes[index].pendiente -= monto;
@@ -109,52 +130,67 @@
     }
 
     function liquidar(index) {
-        if(confirm("¿Liquidar cuenta?")) { clientes.splice(index, 1); guardarDatos(); }
+        if(confirm(`¿Eliminar a ${clientes[index].nombre}?`)) {
+            clientes.splice(index, 1);
+            guardarDatos();
+        }
+    }
+
+    function render() {
+        const div = document.getElementById('lista');
+        const busqueda = document.getElementById('buscador').value.toLowerCase();
+        div.innerHTML = "";
+        
+        const filtrados = clientes.filter(c => c.nombre.toLowerCase().includes(busqueda));
+
+        if(filtrados.length === 0) {
+            div.innerHTML = '<p class="empty-msg">No hay resultados.</p>';
+            return;
+        }
+
+        filtrados.forEach((c) => {
+            const realIndex = clientes.indexOf(c);
+            let historialHTML = c.historial.map(h => 
+                `<div class="historial-item">📅 ${h.fecha} - <b>$${h.monto}</b></div>`
+            ).join('');
+
+            div.innerHTML += `
+                <div class="cliente-item">
+                    <span class="nombre-texto">${c.nombre}</span>
+                    <span class="producto-texto">📦 Compra: ${c.producto}</span>
+                    <span class="monto-pendiente">Debe: $${c.pendiente.toFixed(2)}</span>
+                    
+                    <div class="historial-box">
+                        <strong>Pagos realizados:</strong><br>
+                        ${historialHTML || 'Sin abonos'}
+                    </div>
+
+                    <div class="acciones-mini">
+                        <button class="btn-mini btn-abono" onclick="registrarAbono(${realIndex})">➕ Abonar</button>
+                        <button class="btn-mini btn-liq" onclick="liquidar(${realIndex})">✅ Liquidar</button>
+                    </div>
+                </div>`;
+        });
     }
 
     function exportarDatos() {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(btoa(JSON.stringify(clientes)));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "respaldo_abonos.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
+        const link = document.createElement('a');
+        link.setAttribute("href", dataStr);
+        link.setAttribute("download", "respaldo_abonos_v5.json");
+        link.click();
     }
 
-    function importarDatos(event) {
+    function importarDatos(e) {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = (event) => {
             try {
-                clientes = JSON.parse(atob(e.target.result));
+                clientes = JSON.parse(atob(event.target.result));
                 guardarDatos();
-                alert("Datos importados con éxito");
-            } catch(err) { alert("Archivo de respaldo no válido"); }
+                alert("Importado con éxito");
+            } catch(err) { alert("Archivo inválido"); }
         };
-        reader.readAsText(event.target.files[0]);
-    }
-
-    function cerrarSesion() { location.reload(); }
-
-    function render() {
-        const div = document.getElementById('lista');
-        div.innerHTML = clientes.length === 0 ? '<p style="text-align:center; color:gray;">Sin pendientes</p>' : "";
-        clientes.forEach((c, i) => {
-            div.innerHTML += `
-                <div class="cliente-item">
-                    <div class="info-cliente">
-                        <span class="nombre-label">Cliente</span>
-                        <span class="nombre-texto">${c.nombre}</span>
-                    </div>
-                    <div class="monto-seccion">
-                        <span class="monto">$${c.pendiente.toFixed(2)}</span>
-                        <div class="acciones-mini">
-                            <button class="btn-mini btn-abono" onclick="registrarAbono(${i})">Abonar</button>
-                            <button class="btn-mini btn-liq" onclick="liquidar(${i})">Liquidar</button>
-                        </div>
-                    </div>
-                </div>`;
-        });
+        reader.readAsText(e.target.files[0]);
     }
 </script>
 </body>
