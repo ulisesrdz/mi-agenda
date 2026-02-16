@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda de Abonos Protegida</title>
+    <style>
+        :root { --primary: #2c3e50; --accent: #27ae60; --danger: #e74c3c; --info: #3498db; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #ecf0f1; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 450px; }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 20px; }
+        input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 10px; }
+        .btn-add { background: var(--accent); color: white; }
+        .btn-add:hover { background: #219150; }
+        
+        .cliente-item { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 10px; border-left: 5px solid var(--accent); display: flex; justify-content: space-between; align-items: center; }
+        .info-cliente { flex-grow: 1; }
+        .nombre-label { font-size: 0.8em; color: gray; display: block; }
+        .nombre-texto { font-weight: bold; color: var(--primary); text-transform: capitalize; }
+        
+        .monto-seccion { text-align: right; margin-left: 10px; }
+        .monto { color: var(--danger); font-weight: bold; font-size: 1.1em; display: block; }
+        
+        .acciones-mini { display: flex; gap: 5px; margin-top: 5px; }
+        .btn-mini { width: auto; padding: 4px 8px; font-size: 0.75em; margin: 0; }
+        .btn-abono { background: var(--info); color: white; }
+        .btn-liq { background: #eee; color: #333; }
+        
+        .backup-zone { margin-top: 30px; padding-top: 15px; border-top: 1px dashed #ccc; display: flex; gap: 10px; }
+        .btn-backup { background: #95a5a6; color: white; font-size: 0.7em; margin: 0; flex: 1; }
+
+        #app-content { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="login-section">
+        <h2>🔐 Acceso Privado</h2>
+        <input type="password" id="master-pass" placeholder="Introduce tu contraseña">
+        <button class="btn-add" onclick="checkPass()">Entrar</button>
+    </div>
+
+    <div id="app-content">
+        <h2>📒 Mis Abonos</h2>
+        <input type="text" id="nombre" placeholder="Nombre del cliente">
+        <input type="number" id="deuda" placeholder="Deuda Total ($)">
+        <button class="btn-add" onclick="agregar()">+ Registrar Deuda</button>
+        
+        <div id="lista" style="margin-top: 20px;"></div>
+        
+        <div class="backup-zone">
+            <button class="btn-backup" onclick="exportarDatos()">📥 Descargar Respaldo</button>
+            <button class="btn-backup" onclick="document.getElementById('fileInput').click()">📤 Subir Respaldo</button>
+            <input type="file" id="fileInput" style="display:none" onchange="importarDatos(event)">
+        </div>
+
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="cerrarSesion()" style="background:none; color:gray; font-size: 0.8em; text-decoration: underline; width: auto;">Cerrar Sesión</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let clientes = [];
+
+    function checkPass() {
+        if(document.getElementById('master-pass').value.length < 3) return alert("Clave inválida");
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('app-content').style.display = 'block';
+        cargarDatos();
+    }
+
+    function guardarDatos() {
+        clientes.sort((a, b) => a.nombre.localeCompare(b.nombre));
+        localStorage.setItem('datos_abonos_v3', btoa(JSON.stringify(clientes)));
+        render();
+    }
+
+    function cargarDatos() {
+        const guardado = localStorage.getItem('datos_abonos_v3');
+        if(guardado) {
+            try { clientes = JSON.parse(atob(guardado)); render(); } catch(e) { clientes = []; }
+        }
+    }
+
+    function agregar() {
+        const n = document.getElementById('nombre').value;
+        const d = parseFloat(document.getElementById('deuda').value);
+        if(n && d > 0) {
+            clientes.push({ nombre: n, pendiente: d });
+            document.getElementById('nombre').value = ""; document.getElementById('deuda').value = "";
+            guardarDatos();
+        }
+    }
+
+    function registrarAbono(index) {
+        const monto = parseFloat(prompt(`¿Cuánto abona ${clientes[index].nombre}?`));
+        if(!isNaN(monto) && monto > 0) {
+            if(monto >= clientes[index].pendiente) {
+                alert("Cuenta liquidada.");
+                clientes.splice(index, 1);
+            } else {
+                clientes[index].pendiente -= monto;
+            }
+            guardarDatos();
+        }
+    }
+
+    function liquidar(index) {
+        if(confirm("¿Liquidar cuenta?")) { clientes.splice(index, 1); guardarDatos(); }
+    }
+
+    function exportarDatos() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(btoa(JSON.stringify(clientes)));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "respaldo_abonos.json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function importarDatos(event) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                clientes = JSON.parse(atob(e.target.result));
+                guardarDatos();
+                alert("Datos importados con éxito");
+            } catch(err) { alert("Archivo de respaldo no válido"); }
+        };
+        reader.readAsText(event.target.files[0]);
+    }
+
+    function cerrarSesion() { location.reload(); }
+
+    function render() {
+        const div = document.getElementById('lista');
+        div.innerHTML = clientes.length === 0 ? '<p style="text-align:center; color:gray;">Sin pendientes</p>' : "";
+        clientes.forEach((c, i) => {
+            div.innerHTML += `
+                <div class="cliente-item">
+                    <div class="info-cliente">
+                        <span class="nombre-label">Cliente</span>
+                        <span class="nombre-texto">${c.nombre}</span>
+                    </div>
+                    <div class="monto-seccion">
+                        <span class="monto">$${c.pendiente.toFixed(2)}</span>
+                        <div class="acciones-mini">
+                            <button class="btn-mini btn-abono" onclick="registrarAbono(${i})">Abonar</button>
+                            <button class="btn-mini btn-liq" onclick="liquidar(${i})">Liquidar</button>
+                        </div>
+                    </div>
+                </div>`;
+        });
+    }
+</script>
+</body>
+</html>
