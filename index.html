@@ -5,35 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agenda Pro - Control de Abonos</title>
     <style>
-        :root { --primary: #2c3e50; --accent: #27ae60; --danger: #e74c3c; --info: #3498db; --gray: #95a5a6; }
+        :root { --primary: #2c3e50; --accent: #27ae60; --danger: #e74c3c; --info: #3498db; --gray: #95a5a6; --warning: #f39c12; }
         body { font-family: 'Segoe UI', sans-serif; background: #ecf0f1; display: flex; justify-content: center; padding: 20px; }
         .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
         h2 { text-align: center; color: var(--primary); margin-bottom: 20px; }
-        
         input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
         .search-bar { border: 2px solid var(--info); background: #f0faff; margin-bottom: 15px; }
-        
         button { width: 100%; padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 5px; }
         .btn-add { background: var(--accent); color: white; margin-bottom: 15px; }
         
         .cliente-item { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 5px solid var(--accent); position: relative; }
         .nombre-texto { font-weight: bold; color: var(--primary); font-size: 1.2em; text-transform: capitalize; display: block; }
-        .producto-texto { font-size: 0.9em; color: #555; font-style: italic; margin-bottom: 5px; display: block; }
+        .producto-texto { font-size: 0.85em; color: #555; background: #e8f5e9; padding: 2px 6px; border-radius: 4px; display: inline-block; margin: 5px 0; }
         .monto-pendiente { color: var(--danger); font-weight: bold; font-size: 1.3em; margin: 5px 0; display: block; }
         
-        .historial-box { font-size: 0.8em; color: #666; background: #fff; padding: 8px; border-radius: 4px; margin: 10px 0; border: 1px solid #eee; max-height: 80px; overflow-y: auto; }
-        .historial-item { border-bottom: 1px solid #f1f1f1; padding: 2px 0; }
+        .historial-box { font-size: 0.75em; color: #666; background: #fff; padding: 8px; border-radius: 4px; margin: 10px 0; border: 1px solid #eee; max-height: 100px; overflow-y: auto; }
+        .hist_pago { color: var(--accent); border-bottom: 1px solid #f1f1f1; }
+        .hist_compra { color: var(--warning); border-bottom: 1px solid #f1f1f1; }
         
-        .acciones-mini { display: flex; gap: 8px; }
-        .btn-mini { padding: 8px; font-size: 0.85em; flex: 1; }
-        .btn-abono { background: var(--info); color: white; }
+        .acciones-mini { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; }
+        .btn-mini { padding: 8px 4px; font-size: 0.75em; margin: 0; color: white; }
+        .btn-abono { background: var(--info); }
+        .btn-compra { background: var(--warning); }
         .btn-liq { background: #eee; color: #333; }
         
         .backup-zone { margin-top: 30px; padding-top: 15px; border-top: 1px dashed #ccc; display: flex; gap: 10px; }
         .btn-backup { background: var(--gray); color: white; font-size: 0.7em; margin: 0; flex: 1; }
-
         #app-content, .hidden { display: none; }
-        .empty-msg { text-align: center; color: gray; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -47,32 +45,28 @@
 
     <div id="app-content">
         <h2>📒 Control de Abonos</h2>
-        
         <div id="registro-form">
-            <input type="text" id="nombre" placeholder="Nombre completo del cliente">
-            <input type="text" id="producto" placeholder="¿Qué compró? (Ej. Zapatos, Préstamo...)">
-            <input type="number" id="deuda" placeholder="Deuda total inicial ($)">
+            <input type="text" id="nombre" placeholder="Nombre del cliente">
+            <input type="text" id="producto" placeholder="¿Qué compró?">
+            <input type="number" id="deuda" placeholder="Deuda inicial ($)">
             <button class="btn-add" onclick="agregar()">+ Registrar Deuda</button>
         </div>
-
         <hr>
-        
-        <input type="text" id="buscador" class="search-bar" placeholder="🔍 Buscar cliente por nombre..." onkeyup="render()">
-
+        <input type="text" id="buscador" class="search-bar" placeholder="🔍 Buscar cliente..." onkeyup="render()">
         <div id="lista"></div>
         
         <div class="backup-zone">
-            <button class="btn-backup" onclick="exportarDatos()">📥 Guardar Archivo</button>
-            <button class="btn-backup" onclick="document.getElementById('fileInput').click()">📤 Cargar Archivo</button>
+            <button class="btn-backup" onclick="exportarDatos()">📥 Guardar Respaldo</button>
+            <button class="btn-backup" onclick="document.getElementById('fileInput').click()">📤 Cargar Respaldo</button>
             <input type="file" id="fileInput" style="display:none" onchange="importarDatos(event)">
         </div>
-
-        <button onclick="location.reload()" style="background:none; color:gray; font-size: 0.8em; margin-top:15px;">Cerrar Sesión</button>
+        <button onclick="location.reload()" style="background:none; color:gray; font-size: 0.7em; margin-top:15px; text-decoration: underline; width: 100%;">Cerrar Sesión</button>
     </div>
 </div>
 
 <script>
     let clientes = [];
+    const DB_KEY = 'agenda_datos_final_v10';
 
     function checkPass() {
         if(document.getElementById('master-pass').value.length > 0) {
@@ -82,16 +76,23 @@
         }
     }
 
+    function obtenerFecha() {
+        return new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    }
+
     function guardarDatos() {
         clientes.sort((a, b) => a.nombre.localeCompare(b.nombre));
-        localStorage.setItem('agenda_v5_data', btoa(JSON.stringify(clientes)));
+        localStorage.setItem(DB_KEY, btoa(unescape(encodeURIComponent(JSON.stringify(clientes)))));
         render();
     }
 
     function cargarDatos() {
-        const guardado = localStorage.getItem('agenda_v5_data');
+        const guardado = localStorage.getItem(DB_KEY);
         if(guardado) {
-            try { clientes = JSON.parse(atob(guardado)); render(); } catch(e) { clientes = []; }
+            try { 
+                clientes = JSON.parse(decodeURIComponent(escape(atob(guardado)))); 
+                render(); 
+            } catch(e) { console.error("Error al cargar"); }
         }
     }
 
@@ -99,16 +100,14 @@
         const n = document.getElementById('nombre').value.trim();
         const p = document.getElementById('producto').value.trim();
         const d = parseFloat(document.getElementById('deuda').value);
-        if(n && d > 0) {
+        if(n && d >= 0) {
             clientes.push({
                 nombre: n,
-                producto: p || "No especificado",
+                productos: [p || "Varios"],
                 pendiente: d,
-                historial: []
+                historial: [] 
             });
-            document.getElementById('nombre').value = "";
-            document.getElementById('producto').value = "";
-            document.getElementById('deuda').value = "";
+            document.getElementById('nombre').value = ""; document.getElementById('producto').value = ""; document.getElementById('deuda').value = "";
             guardarDatos();
         }
     }
@@ -116,21 +115,29 @@
     function registrarAbono(index) {
         const monto = parseFloat(prompt(`¿Cuánto abona ${clientes[index].nombre}?`));
         if(!isNaN(monto) && monto > 0) {
-            const fecha = new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-            clientes[index].historial.unshift({ fecha, monto });
-
-            if(monto >= clientes[index].pendiente) {
-                alert("¡Cuenta liquidada!");
+            clientes[index].historial.unshift({ fecha: obtenerFecha(), detalle: 'Abono', monto: monto, tipo: 'pago' });
+            clientes[index].pendiente -= monto;
+            if(clientes[index].pendiente <= 0) {
+                alert("Cuenta liquidada.");
                 clientes.splice(index, 1);
-            } else {
-                clientes[index].pendiente -= monto;
             }
             guardarDatos();
         }
     }
 
+    function agregarNuevaCompra(index) {
+        const p = prompt(`¿Qué nuevo producto se lleva?`);
+        const d = parseFloat(prompt(`¿Precio de ${p}?`));
+        if(p && !isNaN(d)) {
+            clientes[index].productos.push(p);
+            clientes[index].pendiente += d;
+            clientes[index].historial.unshift({ fecha: obtenerFecha(), detalle: `Compra: ${p}`, monto: d, tipo: 'compra' });
+            guardarDatos();
+        }
+    }
+
     function liquidar(index) {
-        if(confirm(`¿Eliminar a ${clientes[index].nombre}?`)) {
+        if(confirm(`¿Liquidar la cuenta de ${clientes[index].nombre}?`)) {
             clientes.splice(index, 1);
             guardarDatos();
         }
@@ -142,42 +149,37 @@
         div.innerHTML = "";
         
         const filtrados = clientes.filter(c => c.nombre.toLowerCase().includes(busqueda));
-
-        if(filtrados.length === 0) {
-            div.innerHTML = '<p class="empty-msg">No hay resultados.</p>';
-            return;
-        }
+        if(filtrados.length === 0) { div.innerHTML = '<p style="text-align:center;color:gray;">Sin registros.</p>'; return; }
 
         filtrados.forEach((c) => {
             const realIndex = clientes.indexOf(c);
             let historialHTML = c.historial.map(h => 
-                `<div class="historial-item">📅 ${h.fecha} - <b>$${h.monto}</b></div>`
+                `<div class="${h.tipo === 'pago' || !h.tipo ? 'hist_pago' : 'hist_compra'}">
+                    ${h.fecha} - ${h.tipo === 'compra' ? '⬆️ Compra' : '⬇️ Abono'}: $${h.monto}
+                </div>`
             ).join('');
 
             div.innerHTML += `
                 <div class="cliente-item">
                     <span class="nombre-texto">${c.nombre}</span>
-                    <span class="producto-texto">📦 Compra: ${c.producto}</span>
+                    <span class="producto-texto">📦 ${c.productos.join(', ')}</span>
                     <span class="monto-pendiente">Debe: $${c.pendiente.toFixed(2)}</span>
-                    
-                    <div class="historial-box">
-                        <strong>Pagos realizados:</strong><br>
-                        ${historialHTML || 'Sin abonos'}
-                    </div>
-
+                    <div class="historial-box"><strong>Movimientos:</strong>${historialHTML || '<br>Saldo inicial cargado'}</div>
                     <div class="acciones-mini">
-                        <button class="btn-mini btn-abono" onclick="registrarAbono(${realIndex})">➕ Abonar</button>
-                        <button class="btn-mini btn-liq" onclick="liquidar(${realIndex})">✅ Liquidar</button>
+                        <button class="btn-mini btn-abono" onclick="registrarAbono(${realIndex})">Abonar</button>
+                        <button class="btn-mini btn-compra" onclick="agregarNuevaCompra(${realIndex})">+ Compra</button>
+                        <button class="btn-mini btn-liq" onclick="liquidar(${realIndex})">Liquidar</button>
                     </div>
                 </div>`;
         });
     }
 
     function exportarDatos() {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(btoa(JSON.stringify(clientes)));
+        const datos = btoa(unescape(encodeURIComponent(JSON.stringify(clientes))));
+        const blob = new Blob([datos], {type: "text/plain"});
         const link = document.createElement('a');
-        link.setAttribute("href", dataStr);
-        link.setAttribute("download", "respaldo_abonos_v5.json");
+        link.href = URL.createObjectURL(blob);
+        link.download = "respaldo_cuentas.txt";
         link.click();
     }
 
@@ -185,10 +187,22 @@
         const reader = new FileReader();
         reader.onload = (event) => {
             try {
-                clientes = JSON.parse(atob(event.target.result));
-                guardarDatos();
-                alert("Importado con éxito");
-            } catch(err) { alert("Archivo inválido"); }
+                const decodificado = JSON.parse(decodeURIComponent(escape(atob(event.target.result.trim()))));
+                if(Array.isArray(decodificado)) {
+                    clientes = decodificado.map(c => ({
+                        nombre: c.nombre || "Sin nombre",
+                        productos: c.productos || [c.producto || "Varios"],
+                        pendiente: c.pendiente || 0,
+                        historial: (c.historial || []).map(h => {
+                            // Si no tiene tipo, asumimos que es abono (pago)
+                            if(!h.tipo) h.tipo = 'pago'; 
+                            return h;
+                        })
+                    }));
+                    guardarDatos();
+                    alert("¡Cargado correctamente como Abonos!");
+                }
+            } catch(err) { alert("Archivo incompatible."); }
         };
         reader.readAsText(e.target.files[0]);
     }
